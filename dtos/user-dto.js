@@ -1,9 +1,9 @@
 exports.getUserDto = (model) => {
-  const { _id, email, username, isActivated } = model;
+  const { _id, email, userName, isActivated } = model;
   return {
     id: _id,
     email,
-    username,
+    userName,
     isActivated,
   };
 };
