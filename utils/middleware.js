@@ -3,7 +3,7 @@ const ApiError = require("../exeptions/api-error");
 const { validateAccessToken } = require("../services/token-service");
 
 exports.unknownEndpoint = (req, res) => {
-  res.status(404).send({ error: "Unknown endpoint" });
+  res.status(404).json({ message: "Unknown endpoint" });
 };
 
 exports.errorHandler = (err, req, res, next) => {
@@ -15,7 +15,7 @@ exports.errorHandler = (err, req, res, next) => {
       .json({ message: err.message, errors: err.errors });
   }
 
-  next(err);
+  return res.status(500).json({ message: "server error" });
 };
 
 exports.authorization = (req, res, next) => {
