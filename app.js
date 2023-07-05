@@ -4,7 +4,7 @@ const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
-const { MONGODB_URI } = require("./utils/config");
+const { MONGODB_URI, CLIENT_URL } = require("./utils/config");
 const logger = require("./utils/logger");
 const usersRouter = require("./routes/users-router");
 const { unknownEndpoint, errorHandler } = require("./utils/middleware");
@@ -20,7 +20,7 @@ const dbConnect = async () => {
 
 dbConnect();
 
-app.use(cors());
+app.use(cors({ credentials: true, origin: CLIENT_URL }));
 app.use(cookieParser());
 app.use(express.json());
 app.use("/api/users", usersRouter);
