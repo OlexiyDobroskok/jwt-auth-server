@@ -17,8 +17,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-exports.sendActivationMail = async (to, link) => {
-  await transporter.sendMail({
+exports.sendActivationMail = async (to, link) =>
+  transporter.sendMail({
     from: SMTP_USER,
     to,
     subject: `Activate your ${API_URL} account`,
@@ -30,4 +30,17 @@ exports.sendActivationMail = async (to, link) => {
         </div>
     `,
   });
-};
+
+exports.sendConfirmPasswordChangesMail = async (to, link) =>
+  transporter.sendMail({
+    from: SMTP_USER,
+    to,
+    subject: `Request to Reset Password`,
+    text: "",
+    html: `
+        <div>
+            <h1>To confirm your request to Reset your Password, please follow the link</h1>
+            <a href="${link}">${link}</a>  
+        </div>
+    `,
+  });

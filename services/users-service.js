@@ -1,7 +1,10 @@
 const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
 const uuid = require("uuid");
-const { sendActivationMail } = require("./mail-service");
+const {
+  sendActivationMail,
+  sendConfirmPasswordChangesMail,
+} = require("./mail-service");
 const { getUserDto } = require("../dtos/user-dto");
 const {
   generateTokens,
@@ -12,6 +15,11 @@ const {
 } = require("./token-service");
 const ApiError = require("../exeptions/api-error");
 const { API_URL } = require("../utils/config");
+const {
+  saveResetConfig,
+  findResetConfig,
+  deleteResetConfig,
+} = require("./reset-service");
 
 exports.registration = async ({ email, password, userName }) => {
   const user = await User.findOne({ email });
@@ -27,7 +35,7 @@ exports.registration = async ({ email, password, userName }) => {
     activationLink,
   });
   const mailActivationLink = `${API_URL}/api/users/activation/${activationLink}`;
-  await sendActivationMail(email, mailActivationLink);
+  // await sendActivationMail(email, mailActivationLink);
   const userDto = getUserDto(newUser);
   const { accessToken, refreshToken } = generateTokens(userDto);
   await saveToken(userDto.id, refreshToken);
@@ -41,7 +49,7 @@ exports.activate = async (activationLink) => {
     throw ApiError.BadRequest("incorrect activation link");
   }
   user.isActivated = true;
-  await user.save();
+  return user.save();
 };
 
 exports.login = async (email, password) => {
@@ -57,9 +65,7 @@ exports.login = async (email, password) => {
   return { accessToken, refreshToken, userDto };
 };
 
-exports.logout = async (refreshToken) => {
-  await removeToken(refreshToken);
-};
+exports.logout = async (refreshToken) => removeToken(refreshToken);
 
 exports.refresh = async (refreshToken) => {
   if (!refreshToken) {
@@ -75,7 +81,28 @@ exports.refresh = async (refreshToken) => {
   const { accessToken, refreshToken: updRefreshToken } =
     generateTokens(userDto);
   await saveToken(userDto.id, updRefreshToken);
+
   return { accessToken, updRefreshToken, userDto };
 };
 
-exports.getAllUsers = async () => await User.find({});
+exports.getAllUsers = async () => User.find({});
+
+exports.initialPasswordReset = async (user, newPassword) => {
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+  const resetCode = uuid.v4();
+  await saveResetConfig(user.id, newPasswordHash, resetCode);
+  const confirmLink = `${API_URL}/api/users/reset/${resetCode}`;
+  await sendConfirmPasswordChangesMail(user.email, confirmLink);
+};
+
+exports.confirmResetPassword = async (resetCode) => {
+  const { user: userId, tempData: newPasswordHash } = await findResetConfig(
+    resetCode
+  );
+  if (!userId) {
+    throw ApiError.BadRequest("incorrect reset code");
+  }
+  await User.findByIdAndUpdate(userId, { passwordHash: newPasswordHash });
+
+  await deleteResetConfig(resetCode);
+};
