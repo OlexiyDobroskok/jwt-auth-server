@@ -4,7 +4,7 @@ const Token = require("../models/token-model");
 
 exports.generateTokens = (payload) => {
   const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
-    expiresIn: "30m",
+    expiresIn: "1d",
   });
   const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: "30d",
@@ -14,20 +14,18 @@ exports.generateTokens = (payload) => {
 };
 
 exports.saveToken = async (userId, refreshToken) => {
-  const tokenData = await Token.findById(userId);
-  if (tokenData) {
-    tokenData.refreshToken = refreshToken;
-    return tokenData.save();
+  const tokenData = await Token.findOne({ user: userId });
+  if (!tokenData) {
+    return Token.create({ user: userId, refreshToken });
   }
-  return await Token.create({ user: userId, refreshToken });
+  tokenData.refreshToken = refreshToken;
+  return tokenData.save();
 };
 
-exports.removeToken = async (refreshToken) => {
-  await Token.deleteOne({ refreshToken });
-};
+exports.removeToken = async (refreshToken) => Token.deleteOne({ refreshToken });
 
 exports.findRefreshToken = async (refreshToken) =>
-  await Token.findOne({ refreshToken });
+  Token.findOne({ refreshToken });
 
 exports.validateAccessToken = (token) => {
   try {
