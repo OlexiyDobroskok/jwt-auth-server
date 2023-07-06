@@ -1,10 +1,7 @@
 const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
 const uuid = require("uuid");
-const {
-  sendActivationMail,
-  sendConfirmPasswordChangesMail,
-} = require("./mail-service");
+const { sendResetPasswordMail, sendActivationMail } = require("./mail-service");
 const { getUserDto } = require("../dtos/user-dto");
 const {
   generateTokens,
@@ -14,12 +11,8 @@ const {
   findRefreshToken,
 } = require("./token-service");
 const ApiError = require("../exeptions/api-error");
-const { API_URL } = require("../utils/config");
-const {
-  saveResetConfig,
-  findResetConfig,
-  deleteResetConfig,
-} = require("./reset-service");
+const { API_URL, CLIENT_RESET_PASS_URL } = require("../utils/config");
+const { saveResetConfig, findResetConfig } = require("./reset-service");
 
 exports.registration = async ({ email, password, userName }) => {
   const user = await User.findOne({ email });
@@ -35,7 +28,7 @@ exports.registration = async ({ email, password, userName }) => {
     activationLink,
   });
   const mailActivationLink = `${API_URL}/api/users/activation/${activationLink}`;
-  // await sendActivationMail(email, mailActivationLink);
+  await sendActivationMail(email, mailActivationLink);
   const userDto = getUserDto(newUser);
   const { accessToken, refreshToken } = generateTokens(userDto);
   await saveToken(userDto.id, refreshToken);
@@ -87,22 +80,38 @@ exports.refresh = async (refreshToken) => {
 
 exports.getAllUsers = async () => User.find({});
 
-exports.initialPasswordReset = async (user, newPassword) => {
-  const newPasswordHash = await bcrypt.hash(newPassword, 10);
-  const resetCode = uuid.v4();
-  await saveResetConfig(user.id, newPasswordHash, resetCode);
-  const confirmLink = `${API_URL}/api/users/reset/${resetCode}`;
-  await sendConfirmPasswordChangesMail(user.email, confirmLink);
+exports.changeUserPass = async (user, password, newPassword) => {
+  const userInDb = await User.findById(user.id);
+  const passwordIsCorrect =
+    userInDb === null
+      ? false
+      : await bcrypt.compare(password, userInDb.passwordHash);
+  if (!passwordIsCorrect) {
+    throw ApiError.UnauthorizedError("invalid password");
+  }
+  userInDb.passwordHash = await bcrypt.hash(newPassword, 10);
+  await userInDb.save();
+  sendCongratsPassChangeMail(userInDb.email);
 };
 
-exports.confirmResetPassword = async (resetCode) => {
-  const { user: userId, tempData: newPasswordHash } = await findResetConfig(
-    resetCode
-  );
-  if (!userId) {
-    throw ApiError.BadRequest("incorrect reset code");
+exports.initialResetPassword = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw ApiError.UnauthorizedError("invalid email");
   }
-  await User.findByIdAndUpdate(userId, { passwordHash: newPasswordHash });
+  const resetCode = uuid.v4();
+  await saveResetConfig(user.id, resetCode);
+  const resetLink = `${CLIENT_RESET_PASS_URL}/${resetCode}`;
+  await sendResetPasswordMail(user.email, resetLink);
+};
 
-  await deleteResetConfig(resetCode);
+exports.createNewPassword = async (newPassword, resetCode) => {
+  const { userId } = await findResetConfig(resetCode);
+  if (!userId) {
+    throw ApiError.BadRequest("invalid reset code");
+  }
+  const user = await User.findById(userId);
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  await user.save();
+  sendCongratsPassChangeMail(user.email);
 };

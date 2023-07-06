@@ -6,8 +6,9 @@ const {
   logout,
   refresh,
   registration,
-  initialReset,
-  confirmReset,
+  editPassword,
+  resetPassword,
+  createPassword,
 } = require("../controllers/users-controller");
 const { body } = require("express-validator");
 const { authorization } = require("../utils/middleware");
@@ -30,11 +31,18 @@ router.get("/logout", logout);
 router.get("/refresh", refresh);
 router.get("/activation/:link", activation);
 router.post(
-  "/reset",
+  "/password/edit",
   authorization,
   body("newPassword").isLength({ min: 6 }),
-  initialReset
+  body("password").isLength({ min: 6 }),
+  editPassword
 );
-router.get("/reset/:resetCode", confirmReset);
+router.post("/password/reset", body("email").isEmail(), resetPassword);
+router.post(
+  "/password/create",
+  body("newPassword").isLength({ min: 6 }),
+  body("resetCode").isUUID("4"),
+  createPassword
+);
 
 module.exports = router;

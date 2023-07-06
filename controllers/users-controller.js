@@ -6,14 +6,21 @@ const {
   logout,
   refresh,
   getAllUsers,
-  initialPasswordReset,
-  confirmResetPassword,
+  changeUserPass,
+  initialResetPassword,
+  createNewPassword,
 } = require("../services/users-service");
 const { CLIENT_URL } = require("../utils/config");
 const { validationResult } = require("express-validator");
 const ApiError = require("../exeptions/api-error");
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+const COOKIE_CONFIG = {
+  maxAge: COOKIE_MAX_AGE,
+  httpOnly: true,
+  sameSite: "none",
+  secure: true,
+};
 
 exports.registration = async (req, res, next) => {
   const validationErrors = validationResult(req);
@@ -26,10 +33,7 @@ exports.registration = async (req, res, next) => {
   const { accessToken, refreshToken, userDto } = await registration(
     registrationData
   );
-  res.cookie("refreshToken", refreshToken, {
-    maxAge: COOKIE_MAX_AGE,
-    httpOnly: true,
-  });
+  res.cookie("refreshToken", refreshToken, COOKIE_CONFIG);
   res.status(201).json({ accessToken, userDto });
 };
 
@@ -42,10 +46,7 @@ exports.login = async (req, res, next) => {
   }
   const { email, password } = req.body;
   const { accessToken, refreshToken, userDto } = await login(email, password);
-  res.cookie("refreshToken", refreshToken, {
-    maxAge: COOKIE_MAX_AGE,
-    httpOnly: true,
-  });
+  res.cookie("refreshToken", refreshToken, COOKIE_CONFIG);
   res.status(201).json({ accessToken, userDto });
 };
 
@@ -58,11 +59,7 @@ exports.logout = async (req, res) => {
 exports.refresh = async (req, res) => {
   const { refreshToken } = req.cookies;
   const { accessToken, updRefreshToken, userDto } = await refresh(refreshToken);
-  const maxAge = COOKIE_MAX_AGE;
-  res.cookie("refreshToken", updRefreshToken, {
-    maxAge,
-    httpOnly: true,
-  });
+  res.cookie("refreshToken", updRefreshToken, COOKIE_CONFIG);
   res.status(201).json({ accessToken, userDto });
 };
 
@@ -77,22 +74,41 @@ exports.activation = async (req, res) => {
   res.redirect(CLIENT_URL);
 };
 
-exports.initialReset = async (req, res, next) => {
+exports.editPassword = async (req, res, next) => {
   const validationErrors = validationResult(req);
   if (!validationErrors.isEmpty()) {
     return next(
       ApiError.BadRequest("validation error", validationErrors.array())
     );
   }
-  const { newPassword } = req.body;
+  const { password, newPassword } = req.body;
   const user = req.user;
-  console.log(user);
-  await initialPasswordReset(user, newPassword);
-  res.status(200).json({ message: "check your email to confirm" });
+  await changeUserPass(user, password, newPassword);
+  res.status(200).json({ message: "password has been successfully changed" });
 };
 
-exports.confirmReset = async (req, res) => {
-  const resetCode = req.params.resetCode;
-  await confirmResetPassword(resetCode);
-  res.redirect(CLIENT_URL);
+exports.resetPassword = async (req, res, next) => {
+  const validationErrors = validationResult(req);
+  if (!validationErrors.isEmpty()) {
+    return next(
+      ApiError.BadRequest("validation error", validationErrors.array())
+    );
+  }
+  const { email } = req.body;
+  await initialResetPassword(email);
+  res
+    .status(200)
+    .json({ message: "check your email for further instructions" });
+};
+
+exports.createPassword = async (req, res, next) => {
+  const validationErrors = validationResult(req);
+  if (!validationErrors.isEmpty()) {
+    return next(
+      ApiError.BadRequest("validation error", validationErrors.array())
+    );
+  }
+  const { newPassword, resetCode } = req.body;
+  await createNewPassword(newPassword, resetCode);
+  res.status(200).json({ message: "password successful changed" });
 };
