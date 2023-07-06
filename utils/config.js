@@ -7,7 +7,8 @@ const SMTP_PORT = process.env.SMTP_PORT;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
 const API_URL = process.env.API_URL;
-const CLIENT_URL= process.env.CLIENT_URL
+const CLIENT_URL = process.env.CLIENT_URL;
+const CLIENT_RESET_PASS_URL = process.env.CLIENT_RESET_PASS_URL;
 
 module.exports = {
   PORT,
@@ -19,5 +20,6 @@ module.exports = {
   SMTP_USER,
   SMTP_PASSWORD,
   API_URL,
-  CLIENT_URL
+  CLIENT_URL,
+  CLIENT_RESET_PASS_URL,
 };
