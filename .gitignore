@@ -3,3 +3,7 @@
 
 .env
 *.http
+
+.dockerignore
+Dockerfile
+fly.toml
