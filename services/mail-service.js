@@ -4,7 +4,7 @@ const {
   SMTP_PORT,
   SMTP_USER,
   SMTP_PASSWORD,
-  API_URL,
+  CLIENT_URL,
 } = require("../utils/config");
 
 const transporter = nodemailer.createTransport({
@@ -21,7 +21,7 @@ exports.sendActivationMail = async (to, link) =>
   transporter.sendMail({
     from: SMTP_USER,
     to,
-    subject: `Activate your ${API_URL} account`,
+    subject: `Activate your ${CLIENT_URL} account`,
     text: "",
     html: `
         <div>
@@ -31,16 +31,30 @@ exports.sendActivationMail = async (to, link) =>
     `,
   });
 
-exports.sendConfirmPasswordChangesMail = async (to, link) =>
+exports.sendResetPasswordMail = async (to, link) =>
   transporter.sendMail({
     from: SMTP_USER,
     to,
-    subject: `Request to Reset Password`,
+    subject: `[${CLIENT_URL}]Request to Reset Password`,
     text: "",
     html: `
         <div>
             <h1>To confirm your request to Reset your Password, please follow the link</h1>
             <a href="${link}">${link}</a>  
+        </div>
+    `,
+  });
+
+exports.sendCongratsPassChangeMail = async (to) =>
+  transporter.sendMail({
+    from: SMTP_USER,
+    to,
+    subject: `[${CLIENT_URL}]Request to Change Password`,
+    text: "",
+    html: `
+        <div>
+            <h1>Congratulation!</h1>
+            <p>Your password has been successfully changed!</p>  
         </div>
     `,
   });
