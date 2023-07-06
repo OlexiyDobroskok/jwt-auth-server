@@ -3,8 +3,7 @@ const { Schema } = require("mongoose");
 
 const resetSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User" },
-    tempData: { type: String, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
     resetCode: { type: String, required: true },
   },
   { timestamps: true }

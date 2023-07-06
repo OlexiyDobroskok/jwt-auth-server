@@ -1,11 +1,10 @@
 const Reset = require("../models/reset-model");
 
-exports.saveResetConfig = async (userId, tempData, resetCode) => {
-  const resetData = await Reset.findOne({ user: userId });
+exports.saveResetConfig = async (userId, resetCode) => {
+  const resetData = await Reset.findOne({ userId });
   if (!resetData) {
-    return Reset.create({ user: userId, tempData, resetCode });
+    return Reset.create({ userId, resetCode });
   }
-  resetData.tempData = tempData;
   resetData.resetCode = resetCode;
   return resetData.save();
 };
