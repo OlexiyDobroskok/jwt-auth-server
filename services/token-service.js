@@ -4,7 +4,7 @@ const Token = require("../models/token-model");
 
 exports.generateTokens = (payload) => {
   const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
-    expiresIn: "1d",
+    expiresIn: "15m",
   });
   const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: "30d",
