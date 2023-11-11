@@ -101,7 +101,7 @@ exports.changeUserPass = async (user, password, newPassword) => {
 exports.initialResetPassword = async (email) => {
   const user = await User.findOne({ email });
   if (!user) {
-    throw ApiError.UnauthorizedError("invalid email");
+    throw ApiError.BadRequest("invalid email");
   }
   const resetCode = uuid.v4();
   await saveResetConfig(user.id, resetCode);
@@ -110,11 +110,11 @@ exports.initialResetPassword = async (email) => {
 };
 
 exports.createNewPassword = async (newPassword, resetCode) => {
-  const { userId } = await findResetConfig(resetCode);
-  if (!userId) {
+  const resetData = await findResetConfig(resetCode);
+  if (!resetData) {
     throw ApiError.BadRequest("invalid reset code");
   }
-  const user = await User.findById(userId);
+  const user = await User.findById(resetData.userId);
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   await user.save();
   sendCongratsPassChangeMail(user.email);
